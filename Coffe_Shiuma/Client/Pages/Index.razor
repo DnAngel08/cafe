@@ -3,15 +3,35 @@
 @page "/"
 
 
-@code{
+@code{ 
     List<CafeSpecial> Specials;
+    Cafe ConfiguringCafe;
+    bool ShowingConfigureDialog;
 
     protected async override Task OnInitializedAsync()
     {
         Specials = await HttpClient.GetFromJsonAsync<List<CafeSpecial>>("specials");
     }
 
+    void ShowConfigureCafeDialog(CafeSpecial special)
+    {
+        ConfiguringCafe = new Cafe()
+        {
+            Special = special,
+            SpecialId = special.Id,
+            Size = Cafe.DefaultSize,
+            Bebidas = new List<CafeBebida>(),
+        };
+        ShowingConfigureDialog = true;
+    }
+
+    void CancelConfigureCafeDialog()
+    {
+        ConfiguringCafe = null;
+        ShowingConfigureDialog = false;
+    }
 }
+
 
 <div class="main">
     <ul class="cafes-cards">
@@ -19,7 +39,8 @@
         {
             foreach (var Special in Specials)
             {
-                <li style="background-image:url('@Special.ImageUrl')">
+                <li @onclick="@(()=>ShowConfigureCafeDialog(Special))"
+                    style="background-image:url('@Special.ImageUrl')">
                     <div class="cafes-info">
                         <span class="title">@Special.Name</span>
                         @Special.Description
@@ -29,6 +50,11 @@
                     </div>
                 </li>
             }
-        }
+         }
     </ul>
 </div>
+
+@if (ShowingConfigureDialog)
+{
+<ConfigureCafeDialog Cafe="ConfiguringCafe" OnCancel="CancelConfigureCafeDialog" />
+}

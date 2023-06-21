@@ -1,0 +1,124 @@
+﻿@inject HttpClient HttpClient
+
+<h3>ConfigureCafeDialog</h3>
+
+@code {
+
+    [Parameter]
+    public Cafe Cafe { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    List<Bebida> Bebidas;
+
+protected async override Task OnInitializedAsync()
+    {
+        Bebidas = await HttpClient.GetFromJsonAsync<List<Bebida>>("bebidas");
+    }
+
+    void AddTopping(Bebida bebida)
+    {
+        if (Cafe.Bebidas.Find(pt => pt.Bebida == bebida) == null)
+        {
+            Cafe.Bebidas.Add(new CafeBebida() { Bebida = bebida });
+        }
+    }
+
+    void RemoveTopping(Bebida bebida)
+    {
+        Cafe.Bebidas.RemoveAll(pt => pt.Bebida == bebida);
+    }
+
+    void ToppingSelected(ChangeEventArgs e)
+    {
+        if (int.TryParse((string)e.Value, out var index) && index >= 0)
+        {
+            AddTopping(Bebidas[index]);
+
+        }
+    }
+}
+
+<div class="dialog-container">
+    <div class="dialog">
+        <div class="dialog-title">
+            <h2>@Cafe.Special.Name</h2>
+            @Cafe.Special.Description
+        </div>
+
+        <form class="dialog-body">
+            <div>
+                <label>Tamaño:</label>
+                <input type="range"
+                       min="@Cafe.MinimumSize"
+                       max="@Cafe.MaximumSize"
+                       step="@Cafe.IncrementSize"
+                       value="@Cafe.Size"
+                       @onchange="@((ChangeEventArgs e)=> Cafe.Size = int.Parse((string)e.Value))" />
+
+                <span class="size-label">
+                    @(Cafe.Size) cm ($@(Cafe.GetFormattedTotalPrice()))
+                </span>
+            </div>
+
+            <div>
+                <label>Complementos adicionales:</label>
+                @if (Bebidas == null)
+                {
+                    <select class="custom-select" disabled>
+                        <option>(Cargando...)</option>
+                    </select>
+                }
+                else if (Cafe.Bebidas.Count >= 6)
+                {
+                    <div>(máximo alcanzado)</div>
+                }
+                else
+                {
+                    <select class="custom-select" @onchange="@ToppingSelected">
+                        <option value="-1" disabled selected>(selecciona)</option>
+                        @for (var i = 0; i < Bebidas.Count; i++)
+                        {
+                            <option value="@i">
+                                @Bebidas[i].Name - ($@(Bebidas[i].GetFormattedPrice()))
+                            </option>
+                        }
+                    </select>
+                }
+            </div>
+
+            <div class="toppings">
+                @foreach (var topping in Cafe.Bebidas)
+                {
+                    <div class="topping">
+                        @topping.Bebida.Name
+                        <span class="topping-price">
+                            @topping.Bebida.GetFormattedPrice()
+                        </span>
+                        <button type="button" class="delete-topping"
+                                @onclick="@(() => RemoveTopping(topping.Bebida))">
+                            x
+                        </button>
+                    </div>
+                }
+            </div>
+            
+
+        </form>
+        <div class="dialog-buttons">
+            <button class="btn btn-secondary mr-auto" @onclick="OnCancel">Cancelar</button>
+            <span class="mr-center">
+                Precio:
+                <span class="price">
+                    @(Cafe.GetFormattedTotalPrice())
+                </span>
+            </span>
+            <button class="btn btn-success ml-auto" @onclick="OnConfirm">Ordenar ></button>
+        </div>
+    </div>
+</div>
+
